@@ -16,8 +16,8 @@ def predict():
 
     stats = [data['testYear']] + data['stats']
 
-    prediction = test_model.get_model(stats)
-    return jsonify({'prediction': prediction})
+    prediction, image_base64 = test_model.main(stats)
+    return jsonify({'prediction': prediction, 'image' : image_base64})
 
 if __name__ == '__main__':
     app.run(debug=True)

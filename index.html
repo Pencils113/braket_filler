@@ -4,11 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>March Madness Bracket</title>
+    <style>
+        #loading {
+            display: none;
+            font-size: 1.5em;
+            color: #007bff;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <h1>March Madness Bracket Generator</h1>
     <form id="stats-form">
         <h3>Select Metrics:</h3>
+        <label for="select-all">Select All:</label>
+        <input type="checkbox" id="select-all"><br><br>
+        
         <label for="seed">Seed:</label>
         <input type="checkbox" id="seed" name="stats" value="Seed"><br>
         
@@ -64,19 +75,40 @@
             <option value="2017">2017</option>
             <option value="2018">2018</option>
             <option value="2019">2019</option>
-            <option value="2020">2020</option>
             <option value="2021">2021</option>
             <option value="2022">2022</option>
-            <option value="2023" selected>2023</option>
+            <option value="2023">2023</option>
+            <option value="2024" selected>2024</option>
         </select><br><br>
         
         <button type="submit">Generate Bracket</button>
     </form>
-    <div id="result"></div>
+
+    <h2>Bracket Visualization</h2>
+    <div id="loading">Loading...</div>
+    <div id="result">
+        <h3>Prediction:</h3>
+        <p id="prediction-text">Your prediction results will appear here.</p>
+        <img id="bracket-image" alt="Bracket will appear here" style="max-width: 100%; border: 1px solid #ccc;">
+    </div>
 
     <script>
+        // "Select All" functionality
+        document.getElementById('select-all').addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('input[name="stats"]');
+            checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
+        });
+
+        // Form submission logic
         document.getElementById('stats-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Show the loading symbol
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+
+            // Hide the result while loading
+            document.getElementById('result').style.display = 'none';
 
             // Gather selected stats
             const selectedStats = Array.from(document.querySelectorAll('input[name="stats"]:checked'))
@@ -85,17 +117,45 @@
             // Get the selected test year
             const testYear = document.getElementById('test-year').value;
 
-            // Send data to backend
-            const response = await fetch('http://127.0.0.1:5000/predict', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ stats: selectedStats, testYear: testYear }),
-            });
-            
-            const result = await response.json();
-            document.getElementById('result').innerText = `Prediction: ${JSON.stringify(result.prediction)}`;
+            try {
+                // Send data to backend
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ stats: selectedStats, testYear: testYear }),
+                });
+
+                // Get the result from the backend
+                const result = await response.json();
+
+                // Hide the loading symbol
+                loading.style.display = 'none';
+
+                // Show the result
+                document.getElementById('result').style.display = 'block';
+
+                // Display the prediction as text
+                document.getElementById('prediction-text').innerText = `Prediction: ${JSON.stringify(result.prediction)}`;
+
+                // Display the bracket image
+                if (result.image) {
+                    document.getElementById('bracket-image').src = `data:image/png;base64,${result.image}`;
+                } else {
+                    document.getElementById('bracket-image').alt = 'Error generating bracket';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+
+                // Hide the loading symbol
+                loading.style.display = 'none';
+
+                // Show the result with an error message
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('prediction-text').innerText = 'Error fetching prediction. Please try again.';
+                document.getElementById('bracket-image').alt = 'Error generating bracket';
+            }
         });
     </script>
 </body>
