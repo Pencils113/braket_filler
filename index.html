@@ -137,7 +137,9 @@
                 document.getElementById('result').style.display = 'block';
 
                 // Display the prediction as text
-                document.getElementById('prediction-text').innerText = `Prediction: ${JSON.stringify(result.prediction)}`;
+                // document.getElementById('prediction-text').innerText = `Prediction: ${JSON.stringify(result.prediction)}`;
+                document.getElementById('prediction-text').innerHTML = `Prediction: ${result.prediction.replace(/\n/g, '<br>')}`;
+
 
                 // Display the bracket image
                 if (result.image) {

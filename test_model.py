@@ -14,6 +14,7 @@ TOURNEY_DATA_M = pd.read_csv("data/tourney_data_m.csv")
 REGULAR_SEASON_DATA = pd.read_csv("data/regular_season_data.csv")
 NAME_DATA = pd.read_csv("data/name_data.csv")
 SEED_DATA = pd.read_csv("data/seed_data.csv")
+TOURNEY_RESULTS = pd.read_csv("data/tourney_results.csv")
 
 def main(stats):
     test_year = int(stats[0])
@@ -23,16 +24,91 @@ def main(stats):
     tourney_structure = get_tourney_structure(test_year, w=False)
     tourney_structure = fill_bracket(tourney_structure.copy(), test_year, model, metrics)
 
+    prediction_str = "\n"
     team_name_list = []
+    team_round_list = []
     for item in tourney_structure:
-        team_name_list.append(get_team_name(item[1]))
-        team_name_list.append(get_team_name(item[2]))
+        tn1 = f"{get_team_name(item[1])}({str(item[3])})"
+        tn2 = f"{get_team_name(item[2])}({str(item[4])})"
+        team_name_list.append(tn1)
+        team_name_list.append(tn2)
+        team_round_list.append(int(item[0][1]) - 1)
+        team_round_list.append(int(item[0][1]) - 1)
     team_name_list.append(get_team_name(item[5]))
+    team_round_list.append(6)
 
-    prediction = tourney_structure
-    image_base64 = plot_bracket(team_name_list)
+    if test_year != 2024: # no tourney data for current year, so no validation available
+        s_round = []
+        s_predicted = []
+        s_true = []
+        for item in tourney_structure:
+            s_round.append(int(item[0][1]))
+            s_predicted.append(item[5])
+            s_true.append(get_true_winner(test_year, item[0]))
 
-    return prediction, image_base64
+            tn1 = get_team_name(item[1])
+            tn2 = get_team_name(item[2])
+            tnw = get_team_name(item[5])
+            tntw = get_team_name(get_true_winner(test_year, item[0]))
+            # prediction_str += f"Game {item[0]}, {tn1}({item[3]}) vs {tn2}({item[4]}). Predicted {tnw}. Actual {tntw}\n"
+            # prediction_str += f"{tnw}, {tntw}\n"
+        
+        score, breakdown = get_score(s_round, s_predicted, s_true, metric='espn')
+        prediction_str += f"Score: {score}"
+        prediction_str += f"\nPredicted {breakdown[1]} of 32"
+        prediction_str += f"\nPredicted {breakdown[2]} of the sweet sixteen"
+        prediction_str += f"\nPredicted {breakdown[3]} of the elite eight"
+        prediction_str += f"\nPredicted {breakdown[4]} of the final four"
+        prediction_str += f"\nPredicted {breakdown[5]} of the finalists"
+        if breakdown[6]:
+            prediction_str += "\nPredicted the champ"
+
+        image_base64 = plot_bracket(team_name_list, team_round_list, is_correct=[s_predicted[i] == s_true[i] for i in range(len(s_true))])
+    else:
+        image_base64 = plot_bracket(team_name_list, team_round_list)
+
+    return prediction_str, image_base64
+
+
+def get_score(games, pred, true, metric='espn'):
+    if metric == 'espn':
+        '''
+        ESPN Tournament Challenge
+        Scoring System: Exponential (1-2-4-8-16-32)
+        Each correctly predicted game awards:
+            First Round (64→32): 10 points
+            Second Round (32→16): 20 points
+            Sweet 16 (16→8): 40 points
+            Elite 8 (8→4): 80 points
+            Final Four (4→2): 160 points
+            Championship (2→1): 320 points
+        Max Possible Points: 1,920 points
+        No seed multipliers—every correct pick is worth the same regardless of seeding.
+        '''
+        mult = [0, 10, 20, 40, 80, 160, 320] # 0 points for play-ins
+        round_assess = [0, 0, 0, 0, 0, 0, 0]
+        score = 0
+        for i in range(len(games)):
+            if pred[i] == true[i]:
+                score += mult[games[i]]
+                round_assess[games[i]] += 1
+
+        return score, round_assess
+    else:
+        # TO-DO
+        return 0
+
+
+def get_true_winner(test_year, game):
+    df = TOURNEY_RESULTS[
+        (TOURNEY_RESULTS['Season'] == test_year) & 
+        (TOURNEY_RESULTS['Game'] == game)
+    ]
+    
+    if len(df) != 1:
+        raise ValueError(f"Expected exactly 1 game, but found {len(df)} games for {game} in season {test_year}.")
+
+    return df.iloc[0]["WTeamID"]
 
 
 def get_model(test_year, metrics):
@@ -66,6 +142,8 @@ def get_tourney_structure(season, w=False):
     play_ins = list(dat_a[dat_a["Seed"].str[-1] == 'a']["Seed"])
     play_ins = [item[:3] for item in play_ins]
 
+    num_play_in_games = len(play_ins) # 2010 has 1, following years all have 4
+
     for play_in in play_ins:
         tourney_structure.append(["R0" + play_in, play_in + 'a', play_in + 'b'])
 
@@ -75,7 +153,7 @@ def get_tourney_structure(season, w=False):
     for row in tourney_structure:
 
         if type(row[1]) is not str:
-            id_mapped.append([row[0], row[1] + 4, row[2] + 4, 0, 0]) # add 4 to adjust for 4 play-in games
+            id_mapped.append([row[0], row[1] + num_play_in_games, row[2] + num_play_in_games, 0, 0]) # add 4 or 1 to adjust for num_play_in_games play-in games
         else:
             if row[1] in play_ins:
                 team1 = play_ins.index(row[1])
@@ -159,29 +237,22 @@ def get_team_name(id):
     return df.iloc[0]
 
 
-def plot_bracket(team_names, size=(15, 5), tight_layout=False):
+def plot_bracket(team_names, round_list, size=(15, 5), tight_layout=False, is_correct=None):
     if len(team_names) == 135: # temp fix for 4 play in games (8 first teams in list)
+        if is_correct is not None:
+            is_correct = is_correct[4:]
         team_names = team_names[8:]
+        round_list = round_list[8:]
+    if len(team_names) == 129: # temp fix for 1 play in game (2 first teams in list, for 2010)
+        if is_correct is not None:
+            is_correct = is_correct[1:]
+        team_names = team_names[2:]
+        round_list = round_list[2:]
 
-    if len(team_names) == 127:
-        bracket = team_names
-        first_round = bracket[:32] + bracket[48:64] + bracket[32:48]
-        bracket = bracket[64:]
-        rounds = [first_round,
-                  bracket[:16] + bracket[24:32] + bracket[16:24],
-                  bracket[32:40] + bracket[44:48] + bracket[40:44],
-                  bracket[48:52] + bracket[54:56] + bracket[52:54],
-                  bracket[56:58] + bracket[59:60] + bracket[58:59],
-                  bracket[60:62],
-                  bracket[62:63]]
-    elif len(team_names) == 63:
-        bracket = team_names
-        rounds = [bracket[:16] + bracket[24:32] + bracket[16:24],
-                  bracket[32:40] + bracket[44:48] + bracket[40:44],
-                  bracket[48:52] + bracket[54:56] + bracket[52:54],
-                  bracket[56:58] + bracket[59:60] + bracket[58:59],
-                  bracket[60:62],
-                  bracket[62:63]]
+    rounds = [[],[],[],[],[],[],[]]
+
+    for i in range(len(round_list)):
+        rounds[round_list[i]].append(team_names[i])
 
     num_rounds = len(rounds)
     num_teams = len(rounds[0])
@@ -195,6 +266,7 @@ def plot_bracket(team_names, size=(15, 5), tight_layout=False):
 
     prev_ys = []
     new_prev_ys = []
+    counter = 0
 
     for r, round_teams in enumerate(rounds):
         round_size = len(round_teams)
@@ -218,11 +290,18 @@ def plot_bracket(team_names, size=(15, 5), tight_layout=False):
 
             if r == num_rounds - 1:
                 x = num_rounds / 2
+                y -= 5
+                team_name = "Winner:\n\n" + team_name
 
-            if team_name == rounds[-1][0]:
+            if r != 0 and is_correct is not None and is_correct[counter]: #team_name == rounds[-1][0]:
                 ax.text(x, y, team_name, ha='center', va='center', fontsize=8, bbox=dict(facecolor='none', edgecolor='green'))
+            
             else:
                 ax.text(x, y, team_name, ha='center', va='center', fontsize=8)
+
+            if r != 0:
+                counter += 1
+
         prev_ys = new_prev_ys
         new_prev_ys = []
 

@@ -13,6 +13,8 @@ def index():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
+    
+    print(data)
 
     stats = [data['testYear']] + data['stats']
 
