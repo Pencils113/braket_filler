@@ -27,6 +27,7 @@ def main(stats):
     prediction_str = "\n"
     team_name_list = []
     team_round_list = []
+
     for item in tourney_structure:
         tn1 = f"{get_team_name(item[1])}({str(item[3])})"
         tn2 = f"{get_team_name(item[2])}({str(item[4])})"
@@ -37,7 +38,7 @@ def main(stats):
     team_name_list.append(get_team_name(item[5]))
     team_round_list.append(6)
 
-    if test_year != 2024: # no tourney data for current year, so no validation available
+    if test_year != 2025: # no tourney data for current year, so no validation available
         s_round = []
         s_predicted = []
         s_true = []
@@ -45,13 +46,6 @@ def main(stats):
             s_round.append(int(item[0][1]))
             s_predicted.append(item[5])
             s_true.append(get_true_winner(test_year, item[0]))
-
-            tn1 = get_team_name(item[1])
-            tn2 = get_team_name(item[2])
-            tnw = get_team_name(item[5])
-            tntw = get_team_name(get_true_winner(test_year, item[0]))
-            # prediction_str += f"Game {item[0]}, {tn1}({item[3]}) vs {tn2}({item[4]}). Predicted {tnw}. Actual {tntw}\n"
-            # prediction_str += f"{tnw}, {tntw}\n"
         
         score, breakdown = get_score(s_round, s_predicted, s_true, metric='espn')
         prediction_str += f"Score: {score}"
@@ -147,7 +141,9 @@ def get_tourney_structure(season, w=False):
     for play_in in play_ins:
         tourney_structure.append(["R0" + play_in, play_in + 'a', play_in + 'b'])
 
-    tourney_structure += [["R1W1", "W01", "W16"], ["R1W8", "W08", "W09"], ["R1W5", "W05", "W12"], ["R1W4", "W04", "W13"], ["R1W6", "W06", "W11"], ["R1W3", "W03", "W14"], ["R1W7", "W07", "W10"], ["R1W2", "W02", "W15"], ["R1X1", "X01", "X16"], ["R1X8", "X08", "X09"], ["R1X5", "X05", "X12"], ["R1X4", "X04", "X13"], ["R1X6", "X06", "X11"], ["R1X3", "X03", "X14"], ["R1X7", "X07", "X10"], ["R1X2", "X02", "X15"], ["R1Y1", "Y01", "Y16"], ["R1Y8", "Y08", "Y09"], ["R1Y5", "Y05", "Y12"], ["R1Y4", "Y04", "Y13"], ["R1Y6", "Y06", "Y11"], ["R1Y3", "Y03", "Y14"], ["R1Y7", "Y07", "Y10"], ["R1Y2", "Y02", "Y15"], ["R1Z1", "Z01", "Z16"], ["R1Z8", "Z08", "Z09"], ["R1Z5", "Z05", "Z12"], ["R1Z4", "Z04", "Z13"], ["R1Z6", "Z06", "Z11"], ["R1Z3", "Z03", "Z14"], ["R1Z7", "Z07", "Z10"], ["R1Z2", "Z02", "Z15"], ["R2W1", 0, 1], ["R2W4", 2, 3], ["R2W3", 4, 5], ["R2W2", 6, 7], ["R2X1", 8, 9], ["R2X4", 10, 11], ["R2X3", 12, 13], ["R2X2", 14, 15], ["R2Y1", 16, 17], ["R2Y4", 18, 19], ["R2Y3", 20, 21], ["R2Y2", 22, 23], ["R2Z1", 24, 25], ["R2Z4", 26, 27], ["R2Z3", 28, 29], ["R2Z2", 30, 31], ["R3W1", 32, 33], ["R3W2", 34, 35], ["R3X1", 36, 37], ["R3X2", 38, 39], ["R3Y1", 40, 41], ["R3Y2", 42, 43], ["R3Z1", 44, 45], ["R3Z2", 46, 47], ["R4W1", 48, 49], ["R4X1", 50, 51], ["R4Y1", 52, 53], ["R4Z1", 54, 55], ["R5WX", 56, 57], ["R5YZ", 58, 59], ["R6CH", 60, 61]]
+    # tourney_structure += [["R1W1", "W01", "W16"], ["R1W8", "W08", "W09"], ["R1W5", "W05", "W12"], ["R1W4", "W04", "W13"], ["R1W6", "W06", "W11"], ["R1W3", "W03", "W14"], ["R1W7", "W07", "W10"], ["R1W2", "W02", "W15"], ["R1X1", "X01", "X16"], ["R1X8", "X08", "X09"], ["R1X5", "X05", "X12"], ["R1X4", "X04", "X13"], ["R1X6", "X06", "X11"], ["R1X3", "X03", "X14"], ["R1X7", "X07", "X10"], ["R1X2", "X02", "X15"], ["R1Y1", "Y01", "Y16"], ["R1Y8", "Y08", "Y09"], ["R1Y5", "Y05", "Y12"], ["R1Y4", "Y04", "Y13"], ["R1Y6", "Y06", "Y11"], ["R1Y3", "Y03", "Y14"], ["R1Y7", "Y07", "Y10"], ["R1Y2", "Y02", "Y15"], ["R1Z1", "Z01", "Z16"], ["R1Z8", "Z08", "Z09"], ["R1Z5", "Z05", "Z12"], ["R1Z4", "Z04", "Z13"], ["R1Z6", "Z06", "Z11"], ["R1Z3", "Z03", "Z14"], ["R1Z7", "Z07", "Z10"], ["R1Z2", "Z02", "Z15"], ["R2W1", 0, 1], ["R2W4", 2, 3], ["R2W3", 4, 5], ["R2W2", 6, 7], ["R2X1", 8, 9], ["R2X4", 10, 11], ["R2X3", 12, 13], ["R2X2", 14, 15], ["R2Y1", 16, 17], ["R2Y4", 18, 19], ["R2Y3", 20, 21], ["R2Y2", 22, 23], ["R2Z1", 24, 25], ["R2Z4", 26, 27], ["R2Z3", 28, 29], ["R2Z2", 30, 31], ["R3W1", 32, 33], ["R3W2", 34, 35], ["R3X1", 36, 37], ["R3X2", 38, 39], ["R3Y1", 40, 41], ["R3Y2", 42, 43], ["R3Z1", 44, 45], ["R3Z2", 46, 47], ["R4W1", 48, 49], ["R4X1", 50, 51], ["R4Y1", 52, 53], ["R4Z1", 54, 55], ["R5WX", 56, 57], ["R5YZ", 58, 59], ["R6CH", 60, 61]]
+    # Version with bracket filled counter-clockwise (as opposed to book order above)
+    tourney_structure += [["R1W1", "W01", "W16"], ["R1W8", "W08", "W09"], ["R1W5", "W05", "W12"], ["R1W4", "W04", "W13"], ["R1W6", "W06", "W11"], ["R1W3", "W03", "W14"], ["R1W7", "W07", "W10"], ["R1W2", "W02", "W15"], ["R1X1", "X01", "X16"], ["R1X8", "X08", "X09"], ["R1X5", "X05", "X12"], ["R1X4", "X04", "X13"], ["R1X6", "X06", "X11"], ["R1X3", "X03", "X14"], ["R1X7", "X07", "X10"], ["R1X2", "X02", "X15"], ["R1Z1", "Z01", "Z16"], ["R1Z8", "Z08", "Z09"], ["R1Z5", "Z05", "Z12"], ["R1Z4", "Z04", "Z13"], ["R1Z6", "Z06", "Z11"], ["R1Z3", "Z03", "Z14"], ["R1Z7", "Z07", "Z10"], ["R1Z2", "Z02", "Z15"], ["R1Y1", "Y01", "Y16"], ["R1Y8", "Y08", "Y09"], ["R1Y5", "Y05", "Y12"], ["R1Y4", "Y04", "Y13"], ["R1Y6", "Y06", "Y11"], ["R1Y3", "Y03", "Y14"], ["R1Y7", "Y07", "Y10"], ["R1Y2", "Y02", "Y15"], ["R2W1", 0, 1], ["R2W4", 2, 3], ["R2W3", 4, 5], ["R2W2", 6, 7], ["R2X1", 8, 9], ["R2X4", 10, 11], ["R2X3", 12, 13], ["R2X2", 14, 15], ["R2Z1", 16, 17], ["R2Z4", 18, 19], ["R2Z3", 20, 21], ["R2Z2", 22, 23], ["R2Y1", 24, 25], ["R2Y4", 26, 27], ["R2Y3", 28, 29], ["R2Y2", 30, 31], ["R3W1", 32, 33], ["R3W2", 34, 35], ["R3X1", 36, 37], ["R3X2", 38, 39], ["R3Z1", 40, 41], ["R3Z2", 42, 43], ["R3Y1", 44, 45], ["R3Y2", 46, 47], ["R4W1", 48, 49], ["R4X1", 50, 51], ["R4Z1", 52, 53], ["R4Y1", 54, 55],  ["R5WX", 56, 57], ["R5YZ", 58, 59], ["R6CH", 60, 61]] 
 
     id_mapped = []
     for row in tourney_structure:
